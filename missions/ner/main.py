@@ -124,9 +124,10 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=0.02, required=False, help='Set learning rate')
     parser.add_argument('--keep_prob', type=float, default=0.65, required=False, help='Dropout_rate')
 
-    parser.add_argument("--word_embedding_size", type=int, default=16, required=False, help='Word, WordPos Embedding Size') 
-    parser.add_argument("--char_embedding_size", type=int, default=16, required=False, help='Char Embedding Size') 
-    parser.add_argument("--tag_embedding_size", type=int, default=16, required=False, help='Tag Embedding Size') 
+    parser.add_argument("--word_embedding_size", type=int, default=100, required=False, help='Word, WordPos Embedding Size')
+    parser.add_argument("--char_embedding_size", type=int, default=50, required=False, help='Char Embedding Size')
+    parser.add_argument("--tag_embedding_size", type=int, default=16, required=False, help='Tag Embedding Size')
+    parser.add_argument("--pretrained_word_embedding_size", type=int, default=200, required=False, help='Tag Embedding Size')
 
     parser.add_argument('--lstm_units', type=int, default=16, required=False, help='Hidden unit size')
     parser.add_argument('--char_lstm_units', type=int, default=32, required=False, help='Hidden unit size for Char rnn')
@@ -146,10 +147,10 @@ if __name__ == '__main__':
         DATASET_PATH = 'data'
 
     extern_data = []
-
+    print('0')
     # 가져온 문장별 데이터셋을 이용해서 각종 정보 및 학습셋 구성
-    dataset = Dataset(parameter, extern_data)
-
+    dataset = Dataset(parameter, extern_data, Use_pretrained = True)
+    print('5')
 
     # Model 불러오기
     model = Model(dataset.parameter)

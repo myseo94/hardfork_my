@@ -8,7 +8,7 @@ import pickle
 import sys
 
 class Dataset:
-    def __init__(self, parameter, extern_data):
+    def __init__(self, parameter, extern_data, Use_pretrained = False):
         self.parameter = parameter
         self.extern_data = extern_data
 
@@ -17,12 +17,72 @@ class Dataset:
         else:
             with open(parameter["necessary_file"], 'rb') as f:
                 self.necessary_data = pickle.load(f)
+        if Use_pretrained == True:
+            print('2')
+            cnt = 0
+            data = []
+            error_voc = 0
+            with open('./punct_dim200_3.vec', 'r') as f:
+                while True:
+                    line = f.readline()
+                    if not line:
+                        break
+                    data.append(line.split('\n')[0])
 
+            voca_size, emb_dim = data[0].split()
+            voca_size, emb_dim = int(voca_size), int(emb_dim)
+            word = []
+            embedding = []
+            word.append('<UNK>')
+            embedding.append(np.random.uniform(-0.25, 0.25, emb_dim))
+            print('3')
+            for i in range(1, len(data)):
+                temp_embedding = []
+                temp = data[i].split()
+
+                if len(temp) != emb_dim+1:
+                    error_voc += 1
+                    continue
+
+                for i in range(0, emb_dim):
+                    temp_embedding.append(float(temp[i + 1]))
+                word.append(temp[0])
+                embedding.append(temp_embedding)
+            pretrained_embedding = [0] * len(self.necessary_data["word"])
+            print('4')
+            """for i in range(1, len(data)):
+                temp_embedding = []
+                temp = data[i].split()
+                if len(temp) != 200:
+                    error_voc += 1
+                    continue
+                for i in range(0, emb_dim):
+                    temp_embedding.append(float(temp[i + 1]))
+                if temp[0] in self.necessary_data["word"]:
+                    cnt+=1
+                    word.append(temp[0])
+                    embedding[(self.necessary_data["word"])[temp[0]]] = temp_embedding """
+            for k, v in self.necessary_data["word"].items():
+                if k in word:
+                    cnt += 1
+                    pretrained_embedding[v] = embedding[word.index(k)]
+                else:
+                    pretrained_embedding[v] = embedding[0]
+            with open('pre_fasttext_200.pkl', 'wb') as f:
+                pickle.dump(pretrained_embedding, f)
+            print('The num of word in pretraiedn_WordEmbedding',cnt, 'And total voca size is ', len(self.necessary_data["word"]))
+
+            self.pretrained_fasttext = pretrained_embedding
+            #return voca_size - error_voc, emb_dim, word, embedding
         self.parameter["embedding"] = [
                 [ "word", len(self.necessary_data["word"]), parameter["word_embedding_size"]],
-                [ "character", len(self.necessary_data["character"]), parameter["char_embedding_size"]]
+                [ "character", len(self.necessary_data["character"]), parameter["char_embedding_size"]],
+                ["word_pretrain", len(self.necessary_data["word"]), parameter["pretrained_word_embedding_size"]]
             ]
-
+        #WATCH OUT EMBEDDING at model.py -> build_model
+        #necessary_data["word"] 어절 사전
+        #,
+        #        self.parameter["embedding"].append(["pretrained_word", len(self.necessary_data["word"]), parameter["pretrained_word_embedding_size"]])
         self.parameter["n_class"] = len(self.necessary_data["ner_tag"])
 
     def _make_necessary_data_by_train_data(self):
@@ -80,6 +140,9 @@ class Dataset:
 
         temp = [[], [], []]
         # TAG 정보가 없는 경우에는 tag 자리에 mor 정보가 들어온다
+        #ner_mor = ['비토리오','양일',...,'가율']
+        #ner_tag = ['PER_B','DAT_B','-',...,'-']
+        #tag = mor = ner_mor
         for mor, tag, _, ner_mor, ner_tag in self._read_data_file(pre=False, extern_data=self.extern_data):
             if tag != False:
                 temp[0] += mor
@@ -103,6 +166,7 @@ class Dataset:
                 label = [0] * self.parameter["sentence_length"]
 
                 if len(temp[0]) > self.parameter["sentence_length"]:
+                    #sentence_length보다 크면 그냥 무시?
                     temp = [[], [], []]
                     continue
 
@@ -132,7 +196,7 @@ class Dataset:
         self.morphs = np.array(morphs)
         self.ne_dicts = np.array(ne_dicts)
         self.characters = np.array(characters)
-        self.sequence_lengths = np.array(sequence_lengths)
+        self.sequence_lengths = np.array(sequence_lengths) #각 문장 길이를 저장
         self.character_lengths = np.array(character_lengths)
         self.labels = np.array(labels)
 
